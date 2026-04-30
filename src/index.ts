@@ -11,6 +11,7 @@ import v1Router from "./routes/v1/index";
 import { userUploadRouter, listingUploadRouter } from "./routes/upload.routes";
 
 const app = express();
+app.set("trust proxy", 1); // trust Render's proxy
 
 app.use(process.env["NODE_ENV"] === "production" ? morgan("combined") : morgan("dev"));
 app.use(compression());
@@ -47,6 +48,6 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 
 const PORT = Number(process.env["PORT"]) || 3000;
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
