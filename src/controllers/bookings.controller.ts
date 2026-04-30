@@ -1,162 +1,103 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
 import prisma from "../config/prisma";
-import { sendEmail } from "../config/email";
-import { bookingConfirmationEmail, bookingCancellationEmail } from "../templates/emails";
 
-function formatDate(date: Date): string {
-  return date.toLocaleDateString("en-US", {
-    weekday: "long", year: "numeric", month: "long", day: "numeric",
-  });
-}
-
-export const getAllBookings = async (req: Request, res: Response) => {
+export const getAllBookings = async (req: Request, res: Response): Promise<void> => {
   try {
-    const bookings = await prisma.booking.findMany({
-      include: { listing: true, guest: true },
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit as string) || 10);
+    const skip = (page - 1) * limit;
+
+    const [bookings, total] = await Promise.all([
+      prisma.booking.findMany({
+        skip, take: limit,
+        orderBy: { createdAt: "desc" },
+        include: {
+          guest: { select: { name: true, email: true } },
+          listing: { select: { title: true, location: true } },
+        },
+      }),
+      prisma.booking.count(),
+    ]);
+
+    res.json({
+      data: bookings,
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     });
-    return res.json(bookings);
   } catch (error: any) {
-    return res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 };
 
-export const getBookingById = async (req: Request, res: Response) => {
+export const getBookingById = async (req: Request, res: Response): Promise<void> => {
   try {
     const booking = await prisma.booking.findUnique({
-      where: { id: Number(req.params.id) },
-      include: { listing: true },
+      where: { id: parseInt(req.params.id) },
+      include: {
+        guest: { select: { name: true, email: true } },
+        listing: { select: { title: true, location: true, pricePerNight: true } },
+      },
     });
-    if (!booking) return res.status(404).json({ error: "Booking not found" });
-    if (booking.guestId !== req.userId) return res.status(403).json({ error: "Forbidden" });
-    return res.json(booking);
+    if (!booking) { res.status(404).json({ error: "Booking not found" }); return; }
+    res.json(booking);
   } catch (error: any) {
-    return res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 };
 
-export const createBooking = async (req: Request, res: Response, next: NextFunction) => {
+export const createBooking = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { listingId, checkIn, checkOut } = req.body;
+    const { guestId, listingId, checkIn, checkOut } = req.body;
 
-    if (!listingId || !checkIn || !checkOut) {
-      return res.status(400).json({ error: "listingId, checkIn and checkOut are required" });
+    if (!guestId || !listingId || !checkIn || !checkOut) {
+      res.status(400).json({ error: "guestId, listingId, checkIn, and checkOut are required" });
+      return;
     }
 
-    const listing = await prisma.listing.findUnique({ where: { id: Number(listingId) } });
-    if (!listing) return res.status(404).json({ error: "Listing not found" });
+    const [guest, listing] = await Promise.all([
+      prisma.user.findUnique({ where: { id: parseInt(guestId) } }),
+      prisma.listing.findUnique({ where: { id: parseInt(listingId) } }),
+    ]);
+
+    if (!guest) { res.status(404).json({ error: "User not found" }); return; }
+    if (!listing) { res.status(404).json({ error: "Listing not found" }); return; }
 
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
     const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
-    const totalPrice = nights * listing.pricePerNight;
 
-    const booking = await prisma.$transaction(async (tx) => {
-      const conflict = await tx.booking.findFirst({
-        where: {
-          listingId: Number(listingId),
-          status: "CONFIRMED",
-          checkIn: { lt: checkOutDate },
-          checkOut: { gt: checkInDate },
-        },
-      });
+    if (nights <= 0) {
+      res.status(400).json({ error: "checkOut must be after checkIn" });
+      return;
+    }
 
-      if (conflict) {
-        throw new Error("BOOKING_CONFLICT");
-      }
+    const totalPrice = listing.pricePerNight * nights;
 
-      return tx.booking.create({
-        data: {
-          guestId: req.userId!,
-          listingId: Number(listingId),
-          checkIn: checkInDate,
-          checkOut: checkOutDate,
-          totalPrice,
-          status: "PENDING",
-        },
-      });
+    const booking = await prisma.booking.create({
+      data: {
+        guestId: parseInt(guestId),
+        listingId: parseInt(listingId),
+        checkIn: checkInDate,
+        checkOut: checkOutDate,
+        totalPrice,
+        status: "CONFIRMED",
+      },
     });
 
-    try {
-      const guest = await prisma.user.findUnique({ where: { id: req.userId! } });
-      if (guest) {
-        await sendEmail(
-          guest.email,
-          "Your booking is confirmed!",
-          bookingConfirmationEmail(
-            guest.name, listing.title, listing.location,
-            formatDate(checkInDate), formatDate(checkOutDate), totalPrice
-          )
-        );
-      }
-    } catch (err) {
-      console.error("Booking confirmation email failed:", err);
-    }
-
-    return res.status(201).json(booking);
+    res.status(201).json(booking);
   } catch (error: any) {
-    if (error.message === "BOOKING_CONFLICT") {
-      return res.status(409).json({ error: "These dates are already booked" });
-    }
-    return next(error);
+    res.status(500).json({ error: error.message });
   }
 };
 
-export const deleteBooking = async (req: Request, res: Response) => {
+export const cancelBooking = async (req: Request, res: Response): Promise<void> => {
   try {
-    const booking = await prisma.booking.findUnique({
-      where: { id: Number(req.params.id) },
-      include: { listing: true },
-    });
-    if (!booking) return res.status(404).json({ error: "Booking not found" });
-    if (booking.guestId !== req.userId) return res.status(403).json({ error: "Forbidden" });
+    const id = parseInt(req.params.id);
+    const existing = await prisma.booking.findUnique({ where: { id } });
+    if (!existing) { res.status(404).json({ error: "Booking not found" }); return; }
 
-    const cancelled = await prisma.booking.update({
-      where: { id: booking.id },
-      data: { status: "CANCELLED" },
-    });
-
-    try {
-      const guest = await prisma.user.findUnique({ where: { id: req.userId! } });
-      if (guest) {
-        await sendEmail(
-          guest.email,
-          "Your booking has been cancelled",
-          bookingCancellationEmail(
-            guest.name, booking.listing.title,
-            formatDate(booking.checkIn), formatDate(booking.checkOut)
-          )
-        );
-      }
-    } catch (err) {
-      console.error("Booking cancellation email failed:", err);
-    }
-
-    return res.json(cancelled);
+    await prisma.booking.delete({ where: { id } });
+    res.json({ message: "Booking cancelled successfully" });
   } catch (error: any) {
-    return res.status(500).json({ error: error.message });
-  }
-};
-
-export const updateBookingStatus = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-
-    const validStatuses = ["CONFIRMED", "CANCELLED", "COMPLETED"];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({ error: "Invalid status" });
-    }
-
-    const booking = await prisma.booking.findUnique({ where: { id: Number(id) } });
-    if (!booking) return res.status(404).json({ error: "Booking not found" });
-
-    const updated = await prisma.booking.update({
-      where: { id: Number(id) },
-      data: { status },
-    });
-
-    return res.json(updated);
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 };

@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { getAllUsers, getUserById, updateUser, deleteUser, getUserStats } from "../controllers/users.controller";
-import { authenticate } from "../middlewares/auth.middleware";
-import prisma from "../config/prisma";
+import { getAllUsers, getUserById, updateUser, deleteUser, getUserStats } from "../../controllers/users.controller";
+import { authenticate } from "../../middlewares/auth.middleware";
+import prisma from "../../config/prisma";
 
 const router = Router();
 

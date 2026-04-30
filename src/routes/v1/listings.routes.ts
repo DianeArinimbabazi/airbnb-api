@@ -7,10 +7,10 @@ import {
   deleteListing,
   searchListings,
   getListingStats,
-} from "../controllers/listings.controller";
-import { getListingReviews, createReview } from "../controllers/reviews.controller";
-import { authenticate, requireHost } from "../middlewares/auth.middleware";
-import { strictLimiter } from "../middlewares/rateLimiter";
+} from "../../controllers/listings.controller";
+import { getListingReviews, createReview } from "../../controllers/reviews.controller";
+import { authenticate, requireHost } from "../../middlewares/auth.middleware";
+import { strictLimiter } from "../../middlewares/rateLimiter";
 
 const router = Router();
 

@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { getAllBookings, getBookingById, createBooking, cancelBooking } from "../controllers/bookings.controller";
-import { authenticate } from "../middlewares/auth.middleware";
-import { strictLimiter } from "../middlewares/rateLimiter";
+import { getAllBookings, getBookingById, createBooking, cancelBooking } from "../../controllers/bookings.controller";
+import { authenticate } from "../../middlewares/auth.middleware";
+import { strictLimiter } from "../../middlewares/rateLimiter";
 
 const router = Router();
 

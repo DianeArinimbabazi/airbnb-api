@@ -1,3 +1,4 @@
+import { getCache, setCache } from "../config/cache";
 import { Request, Response } from "express";
 import prisma from "../config/prisma";
 
@@ -68,5 +69,30 @@ export const deleteUser = async (req: Request, res: Response) => {
     res.json({ message: "User deleted" });
   } catch (error) {
     res.status(500).json({ error: "Something went wrong" });
+  }
+};
+export const getUserStats = async (req: Request, res: Response) => {
+  try {
+    const cacheKey = "users:stats";
+    const cached = getCache(cacheKey);
+    if (cached) return res.json(cached);
+
+    const [totalUsers, byRole] = await Promise.all([
+      prisma.user.count(),
+      prisma.user.groupBy({
+        by: ["role"],
+        _count: { _all: true },
+      }),
+    ]);
+
+    const response = {
+      totalUsers,
+      byRole: byRole.map((r) => ({ role: r.role, count: r._count._all })),
+    };
+
+    setCache(cacheKey, response, 300);
+    return res.json(response);
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
   }
 };
