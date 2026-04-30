@@ -1,7 +1,8 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import prisma from "../config/prisma";
+import type { AuthRequest } from "../middlewares/auth.middleware";
 
-export const getAllBookings = async (req: Request, res: Response): Promise<void> => {
+export const getAllBookings = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = Math.max(1, parseInt(req.query.limit as string) || 10);
@@ -28,10 +29,10 @@ export const getAllBookings = async (req: Request, res: Response): Promise<void>
   }
 };
 
-export const getBookingById = async (req: Request, res: Response): Promise<void> => {
+export const getBookingById = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const booking = await prisma.booking.findUnique({
-      where: { id: parseInt(req.params.id) },
+      where: { id: req.params.id },
       include: {
         guest: { select: { name: true, email: true } },
         listing: { select: { title: true, location: true, pricePerNight: true } },
@@ -44,21 +45,17 @@ export const getBookingById = async (req: Request, res: Response): Promise<void>
   }
 };
 
-export const createBooking = async (req: Request, res: Response): Promise<void> => {
+export const createBooking = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { guestId, listingId, checkIn, checkOut } = req.body;
+    const guestId = req.userId!;
+    const { listingId, checkIn, checkOut } = req.body;
 
-    if (!guestId || !listingId || !checkIn || !checkOut) {
-      res.status(400).json({ error: "guestId, listingId, checkIn, and checkOut are required" });
+    if (!listingId || !checkIn || !checkOut) {
+      res.status(400).json({ error: "listingId, checkIn, and checkOut are required" });
       return;
     }
 
-    const [guest, listing] = await Promise.all([
-      prisma.user.findUnique({ where: { id: parseInt(guestId) } }),
-      prisma.listing.findUnique({ where: { id: parseInt(listingId) } }),
-    ]);
-
-    if (!guest) { res.status(404).json({ error: "User not found" }); return; }
+    const listing = await prisma.listing.findUnique({ where: { id: listingId } });
     if (!listing) { res.status(404).json({ error: "Listing not found" }); return; }
 
     const checkInDate = new Date(checkIn);
@@ -74,8 +71,8 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
 
     const booking = await prisma.booking.create({
       data: {
-        guestId: parseInt(guestId),
-        listingId: parseInt(listingId),
+        guestId,
+        listingId,
         checkIn: checkInDate,
         checkOut: checkOutDate,
         totalPrice,
@@ -89,9 +86,9 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
   }
 };
 
-export const cancelBooking = async (req: Request, res: Response): Promise<void> => {
+export const cancelBooking = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const id = parseInt(req.params.id);
+    const id = req.params.id;
     const existing = await prisma.booking.findUnique({ where: { id } });
     if (!existing) { res.status(404).json({ error: "Booking not found" }); return; }
 

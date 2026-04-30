@@ -1,8 +1,9 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import prisma from "../config/prisma";
 import { getCache, setCache, clearCacheByPrefix } from "../config/cache";
+import type { AuthRequest } from "../middlewares/auth.middleware";
 
-export const getListingReviews = async (req: Request, res: Response) => {
+export const getListingReviews = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const page = Number(req.query.page) || 1;
@@ -15,13 +16,13 @@ export const getListingReviews = async (req: Request, res: Response) => {
 
     const [reviews, total] = await Promise.all([
       prisma.review.findMany({
-        where: { listingId: Number(id) },
+        where: { listingId: id },
         include: { user: { select: { name: true, avatar: true } } },
         skip,
         take: limit,
         orderBy: { createdAt: "desc" },
       }),
-      prisma.review.count({ where: { listingId: Number(id) } }),
+      prisma.review.count({ where: { listingId: id } }),
     ]);
 
     const response = {
@@ -36,47 +37,52 @@ export const getListingReviews = async (req: Request, res: Response) => {
   }
 };
 
-export const createReview = async (req: Request, res: Response) => {
+export const createReview = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { userId, rating, comment } = req.body;
+    const userId = req.userId!;
+    const { rating, comment } = req.body;
 
-    if (!userId || !rating || !comment) {
-      return res.status(400).json({ error: "userId, rating and comment are required" });
+    console.log("NEW CODE RUNNING", { rating, comment, userId });
+
+    if (!rating || !comment) {
+      return res.status(400).json({ error: "rating and comment are required" });
     }
 
     if (rating < 1 || rating > 5) {
       return res.status(400).json({ error: "Rating must be between 1 and 5" });
     }
 
-    const listing = await prisma.listing.findUnique({ where: { id: Number(id) } });
+    const listing = await prisma.listing.findUnique({ where: { id } });
     if (!listing) return res.status(404).json({ error: "Listing not found" });
 
     const review = await prisma.review.create({
       data: {
         rating: Number(rating),
         comment,
-        userId: Number(userId),
-        listingId: Number(id),
+        userId,
+        listingId: id,
       },
     });
 
     clearCacheByPrefix(`reviews:${id}`);
+    clearCacheByPrefix(`review-summary-${id}`);
     return res.status(201).json(review);
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
   }
 };
 
-export const deleteReview = async (req: Request, res: Response) => {
+export const deleteReview = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
-    const review = await prisma.review.findUnique({ where: { id: Number(id) } });
+    const review = await prisma.review.findUnique({ where: { id } });
     if (!review) return res.status(404).json({ error: "Review not found" });
 
-    await prisma.review.delete({ where: { id: Number(id) } });
+    await prisma.review.delete({ where: { id } });
     clearCacheByPrefix(`reviews:${review.listingId}`);
+    clearCacheByPrefix(`review-summary-${review.listingId}`);
 
     return res.json({ message: "Review deleted successfully" });
   } catch (error: any) {
