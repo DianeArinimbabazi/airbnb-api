@@ -99,8 +99,9 @@ export const getListingStats = async (_req: Request, res: Response): Promise<voi
 
 export const getListingById = async (req: Request, res: Response): Promise<void> => {
   try {
+    const id = req.params.id as string;
     const listing = await prisma.listing.findUnique({
-      where: { id: req.params.id },
+      where: { id },
       include: {
         host: { select: { name: true, avatar: true } },
         reviews: { include: { user: { select: { name: true, avatar: true } } } },
@@ -144,7 +145,7 @@ export const createListing = async (req: AuthRequest, res: Response): Promise<vo
 
 export const updateListing = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const existing = await prisma.listing.findUnique({ where: { id } });
     if (!existing) { res.status(404).json({ error: "Listing not found" }); return; }
 
@@ -164,7 +165,7 @@ export const updateListing = async (req: AuthRequest, res: Response): Promise<vo
 
 export const deleteListing = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const existing = await prisma.listing.findUnique({ where: { id } });
     if (!existing) { res.status(404).json({ error: "Listing not found" }); return; }
 

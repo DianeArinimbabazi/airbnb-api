@@ -1,13 +1,5 @@
 import { Router } from "express";
-import {
-  getAllListings,
-  getListingById,
-  createListing,
-  updateListing,
-  deleteListing,
-  searchListings,
-  getListingStats,
-} from "../../controllers/listings.controller";
+import { getAllListings, getListingById, createListing, updateListing, deleteListing, searchListings, getListingStats } from "../../controllers/listings.controller";
 import { getListingReviews, createReview } from "../../controllers/reviews.controller";
 import { authenticate, requireHost } from "../../middlewares/auth.middleware";
 import { strictLimiter } from "../../middlewares/rateLimiter";
@@ -16,17 +8,40 @@ const router = Router();
 
 /**
  * @swagger
+ * tags:
+ *   name: Listings
+ *   description: Property listing management
+ */
+
+/**
+ * @swagger
  * /api/v1/listings/stats:
  *   get:
  *     summary: Get listing statistics
  *     tags: [Listings]
+ *     description: Total listings, average price, count by location and type. Cached 5 minutes.
  *     responses:
  *       200:
- *         description: Listing stats
+ *         description: Listing statistics
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ListingStats'
+ *               type: object
+ *               properties:
+ *                 totalListings:
+ *                   type: integer
+ *                   example: 120
+ *                 averagePrice:
+ *                   type: number
+ *                   example: 145.50
+ *                 byLocation:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 byType:
+ *                   type: array
+ *                   items:
+ *                     type: object
  */
 router.get("/stats", getListingStats);
 
@@ -34,14 +49,79 @@ router.get("/stats", getListingStats);
  * @swagger
  * /api/v1/listings/search:
  *   get:
- *     summary: Search listings with filters
+ *     summary: Search and filter listings
  *     tags: [Listings]
  *     parameters:
  *       - in: query
  *         name: location
  *         schema:
  *           type: string
- *         example: Kigali
+ *         example: "Kigali"
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [APARTMENT, HOUSE, VILLA, CABIN]
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: guests
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: Filtered paginated listings
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Listing'
+ *                 meta:
+ *                   $ref: '#/components/schemas/PaginationMeta'
+ */
+router.get("/search", searchListings);
+
+/**
+ * @swagger
+ * /api/v1/listings:
+ *   get:
+ *     summary: Get all listings (paginated)
+ *     tags: [Listings]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *       - in: query
+ *         name: location
+ *         schema:
+ *           type: string
  *       - in: query
  *         name: type
  *         schema:
@@ -51,56 +131,30 @@ router.get("/stats", getListingStats);
  *         name: maxPrice
  *         schema:
  *           type: number
- *         example: 100
  *       - in: query
- *         name: guests
+ *         name: sortBy
  *         schema:
- *           type: integer
- *         example: 2
+ *           type: string
+ *           enum: [pricePerNight, createdAt]
  *       - in: query
- *         name: page
+ *         name: order
  *         schema:
- *           type: integer
- *         example: 1
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *         example: 10
+ *           type: string
+ *           enum: [asc, desc]
  *     responses:
  *       200:
- *         description: Search results
+ *         description: Paginated listings
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/PaginatedListings'
- */
-router.get("/search", searchListings);
-
-/**
- * @swagger
- * /api/v1/listings:
- *   get:
- *     summary: Get all listings
- *     tags: [Listings]
- *     parameters:
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *         example: 1
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *         example: 10
- *     responses:
- *       200:
- *         description: List of listings
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/PaginatedListings'
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Listing'
+ *                 meta:
+ *                   $ref: '#/components/schemas/PaginationMeta'
  */
 router.get("/", getAllListings);
 
@@ -116,11 +170,36 @@ router.get("/", getAllListings);
  *         required: true
  *         schema:
  *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
  *     responses:
  *       200:
- *         description: List of reviews
+ *         description: Paginated reviews
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Review'
+ *                 meta:
+ *                   $ref: '#/components/schemas/PaginationMeta'
  *       404:
  *         description: Listing not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.get("/:id/reviews", getListingReviews);
 
@@ -128,7 +207,7 @@ router.get("/:id/reviews", getListingReviews);
  * @swagger
  * /api/v1/listings/{id}/reviews:
  *   post:
- *     summary: Create a review for a listing
+ *     summary: Add a review to a listing
  *     tags: [Reviews]
  *     security:
  *       - bearerAuth: []
@@ -147,10 +226,28 @@ router.get("/:id/reviews", getListingReviews);
  *     responses:
  *       201:
  *         description: Review created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Review'
  *       400:
- *         description: Invalid input
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       404:
  *         description: Listing not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.post("/:id/reviews", authenticate, strictLimiter, createReview);
 
@@ -168,13 +265,17 @@ router.post("/:id/reviews", authenticate, strictLimiter, createReview);
  *           type: string
  *     responses:
  *       200:
- *         description: Listing details
+ *         description: Listing with host and bookings
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Listing'
  *       404:
  *         description: Listing not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.get("/:id", getListingById);
 
@@ -182,7 +283,7 @@ router.get("/:id", getListingById);
  * @swagger
  * /api/v1/listings:
  *   post:
- *     summary: Create a new listing (hosts only)
+ *     summary: Create a listing (hosts only)
  *     tags: [Listings]
  *     security:
  *       - bearerAuth: []
@@ -199,8 +300,24 @@ router.get("/:id", getListingById);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Listing'
+ *       400:
+ *         description: Missing required fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       403:
- *         description: Forbidden - hosts only
+ *         description: Hosts only
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.post("/", authenticate, requireHost, createListing);
 
@@ -208,7 +325,7 @@ router.post("/", authenticate, requireHost, createListing);
  * @swagger
  * /api/v1/listings/{id}:
  *   put:
- *     summary: Update a listing
+ *     summary: Update a listing (owner only)
  *     tags: [Listings]
  *     security:
  *       - bearerAuth: []
@@ -219,18 +336,53 @@ router.post("/", authenticate, requireHost, createListing);
  *         schema:
  *           type: string
  *     requestBody:
- *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/CreateListingInput'
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               location:
+ *                 type: string
+ *               pricePerNight:
+ *                 type: number
+ *               guests:
+ *                 type: integer
+ *               type:
+ *                 type: string
+ *                 enum: [APARTMENT, HOUSE, VILLA, CABIN]
+ *               amenities:
+ *                 type: array
+ *                 items:
+ *                   type: string
  *     responses:
  *       200:
  *         description: Listing updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Listing'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       403:
- *         description: Forbidden
+ *         description: Not your listing
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       404:
  *         description: Listing not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.put("/:id", authenticate, updateListing);
 
@@ -238,7 +390,7 @@ router.put("/:id", authenticate, updateListing);
  * @swagger
  * /api/v1/listings/{id}:
  *   delete:
- *     summary: Delete a listing
+ *     summary: Delete a listing (owner only)
  *     tags: [Listings]
  *     security:
  *       - bearerAuth: []
@@ -251,11 +403,36 @@ router.put("/:id", authenticate, updateListing);
  *     responses:
  *       200:
  *         description: Listing deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Listing deleted successfully"
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       403:
- *         description: Forbidden
+ *         description: Not your listing
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       404:
  *         description: Listing not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.delete("/:id", authenticate, deleteListing);
 
 export default router;
+
+
+

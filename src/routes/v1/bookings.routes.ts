@@ -1,10 +1,5 @@
 import { Router } from "express";
-import {
-  getAllBookings,
-  getBookingById,
-  createBooking,
-  deleteBooking,
-} from "../../controllers/bookings.controller";
+import { getAllBookings, getBookingById, createBooking, deleteBooking, updateBookingStatus } from "../../controllers/bookings.controller";
 import { authenticate } from "../../middlewares/auth.middleware";
 import { strictLimiter } from "../../middlewares/rateLimiter";
 
@@ -12,9 +7,16 @@ const router = Router();
 
 /**
  * @swagger
+ * tags:
+ *   name: Bookings
+ *   description: Booking management
+ */
+
+/**
+ * @swagger
  * /api/v1/bookings:
  *   get:
- *     summary: Get all bookings
+ *     summary: Get all bookings (paginated)
  *     tags: [Bookings]
  *     security:
  *       - bearerAuth: []
@@ -23,15 +25,15 @@ const router = Router();
  *         name: page
  *         schema:
  *           type: integer
- *         example: 1
+ *           default: 1
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
- *         example: 10
+ *           default: 10
  *     responses:
  *       200:
- *         description: List of bookings
+ *         description: Paginated bookings
  *         content:
  *           application/json:
  *             schema:
@@ -42,16 +44,13 @@ const router = Router();
  *                   items:
  *                     $ref: '#/components/schemas/Booking'
  *                 meta:
- *                   type: object
- *                   properties:
- *                     total:
- *                       type: integer
- *                     page:
- *                       type: integer
- *                     limit:
- *                       type: integer
- *                     totalPages:
- *                       type: integer
+ *                   $ref: '#/components/schemas/PaginationMeta'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.get("/", authenticate, getAllBookings);
 
@@ -76,8 +75,18 @@ router.get("/", authenticate, getAllBookings);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Booking'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       404:
  *         description: Booking not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.get("/:id", authenticate, getBookingById);
 
@@ -89,6 +98,7 @@ router.get("/:id", authenticate, getBookingById);
  *     tags: [Bookings]
  *     security:
  *       - bearerAuth: []
+ *     description: totalPrice is calculated server-side. Returns 409 if dates overlap.
  *     requestBody:
  *       required: true
  *       content:
@@ -103,9 +113,31 @@ router.get("/:id", authenticate, getBookingById);
  *             schema:
  *               $ref: '#/components/schemas/Booking'
  *       400:
- *         description: Invalid input
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Listing not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       409:
- *         description: Dates already booked
+ *         description: Date conflict
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               error: "These dates are already booked"
  */
 router.post("/", authenticate, strictLimiter, createBooking);
 
@@ -117,6 +149,7 @@ router.post("/", authenticate, strictLimiter, createBooking);
  *     tags: [Bookings]
  *     security:
  *       - bearerAuth: []
+ *     description: Sets status to CANCELLED. Only the booking's guest can cancel.
  *     parameters:
  *       - in: path
  *         name: id
@@ -126,11 +159,87 @@ router.post("/", authenticate, strictLimiter, createBooking);
  *     responses:
  *       200:
  *         description: Booking cancelled
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Booking'
+ *       400:
+ *         description: Already cancelled
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               error: "Booking is already cancelled"
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       403:
- *         description: Forbidden
+ *         description: Not your booking
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       404:
  *         description: Booking not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.delete("/:id", authenticate, deleteBooking);
 
+/**
+ * @swagger
+ * /api/v1/bookings/{id}/status:
+ *   patch:
+ *     summary: Update booking status
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [status]
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [PENDING, CONFIRMED, CANCELLED]
+ *     responses:
+ *       200:
+ *         description: Status updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Booking'
+ *       400:
+ *         description: Invalid status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Booking not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.patch("/:id/status", authenticate, updateBookingStatus);
+
 export default router;
+
+
+

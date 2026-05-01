@@ -1,6 +1,6 @@
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
-import { Express } from "express";
+import type { Express, Request, Response } from "express";
 
 const options: swaggerJsdoc.Options = {
   definition: {
@@ -8,9 +8,15 @@ const options: swaggerJsdoc.Options = {
     info: {
       title: "Airbnb API",
       version: "1.0.0",
-      description: "REST API for Airbnb Clone — handles auth, listings, bookings, and file uploads",
+      description:
+        "A full-featured Airbnb-like REST API with authentication, listings, bookings, reviews, file uploads, and AI-powered features.",
     },
-    servers: [{ url: "http://localhost:3000" }],
+    servers: [
+      {
+        url: process.env["API_URL"] || "http://localhost:3000",
+        description: "API Server",
+      },
+    ],
     components: {
       securitySchemes: {
         bearerAuth: {
@@ -20,157 +26,80 @@ const options: swaggerJsdoc.Options = {
         },
       },
       schemas: {
-
-        /* ========================= CORE MODELS ========================= */
-
         User: {
           type: "object",
           properties: {
-            id: { type: "integer", example: 1 },
-            name: { type: "string", example: "Alice Mugisha" },
+            id: { type: "string", example: "a3f8c2d1-4b5e-4f6a-8c9d-1e2f3a4b5c6d" },
+            name: { type: "string", example: "Alice Johnson" },
             email: { type: "string", example: "alice@example.com" },
-            username: { type: "string", example: "alice_m" },
-            phone: { type: "string", example: "+250788000001" },
-            role: { type: "string", enum: ["HOST", "GUEST"], example: "GUEST" },
-            avatar: { type: "string", nullable: true, example: "https://cdn.example.com/avatars/alice.jpg" },
-            bio: { type: "string", nullable: true, example: "Love traveling and exploring new places." },
-            createdAt: { type: "string", format: "date-time", example: "2024-01-15T08:30:00.000Z" },
+            username: { type: "string", example: "alice_host" },
+            phone: { type: "string", example: "+1234567890" },
+            role: { type: "string", enum: ["HOST", "GUEST", "ADMIN"], example: "HOST" },
+            avatar: { type: "string", nullable: true, example: "https://res.cloudinary.com/..." },
+            bio: { type: "string", nullable: true, example: "Love hosting guests" },
+            createdAt: { type: "string", format: "date-time", example: "2024-01-15T10:30:00Z" },
           },
         },
-
         Listing: {
           type: "object",
           properties: {
-            id: { type: "integer", example: 10 },
-            title: { type: "string", example: "Cozy Apartment in Kigali Heights" },
-            description: { type: "string", example: "A bright and modern apartment with a stunning city view." },
+            id: { type: "string", example: "b4g9d3e2-5c6f-5g7b-9d0e-2f3g4b5c6d7e" },
+            title: { type: "string", example: "Cozy Studio in Kigali" },
+            description: { type: "string", example: "A beautiful studio with city views" },
             location: { type: "string", example: "Kigali, Rwanda" },
-            pricePerNight: { type: "number", example: 85.00 },
-            guests: { type: "integer", example: 4 },
+            pricePerNight: { type: "number", example: 85 },
+            guests: { type: "integer", example: 2 },
             type: { type: "string", enum: ["APARTMENT", "HOUSE", "VILLA", "CABIN"], example: "APARTMENT" },
-            amenities: {
-              type: "array",
-              items: { type: "string" },
-              example: ["WiFi", "Air Conditioning", "Pool", "Parking"],
-            },
-            images: {
-              type: "array",
-              nullable: true,
-              items: { type: "string" },
-              example: ["https://cdn.example.com/listings/10/photo1.jpg"],
-            },
-            rating: { type: "number", nullable: true, example: 4.7 },
-            hostId: { type: "integer", example: 1 },
-            host: { $ref: "#/components/schemas/User" },
-            createdAt: { type: "string", format: "date-time", example: "2024-02-10T10:00:00.000Z" },
+            amenities: { type: "array", items: { type: "string" }, example: ["WiFi", "Kitchen", "AC"] },
+            rating: { type: "number", nullable: true, example: 4.5 },
+            hostId: { type: "string", example: "a3f8c2d1-4b5e-4f6a-8c9d-1e2f3a4b5c6d" },
+            createdAt: { type: "string", format: "date-time", example: "2024-01-15T10:30:00Z" },
           },
         },
-
         Booking: {
           type: "object",
           properties: {
-            id: { type: "integer", example: 100 },
-            checkIn: { type: "string", format: "date-time", example: "2025-06-01T14:00:00.000Z" },
-            checkOut: { type: "string", format: "date-time", example: "2025-06-07T11:00:00.000Z" },
-            total: { type: "number", example: 510.00 },
+            id: { type: "string", example: "c5h0e4f3-6d7g-6h8c-0e1f-3g4h5c6d7e8f" },
+            checkIn: { type: "string", format: "date-time", example: "2024-06-01T00:00:00Z" },
+            checkOut: { type: "string", format: "date-time", example: "2024-06-07T00:00:00Z" },
+            totalPrice: { type: "number", example: 595 },
             status: { type: "string", enum: ["PENDING", "CONFIRMED", "CANCELLED"], example: "CONFIRMED" },
-            guestId: { type: "integer", example: 2 },
-            listingId: { type: "integer", example: 10 },
-            guest: { $ref: "#/components/schemas/User" },
-            listing: { $ref: "#/components/schemas/Listing" },
-            createdAt: { type: "string", format: "date-time", example: "2024-05-20T09:15:00.000Z" },
+            guestId: { type: "string", example: "a3f8c2d1-4b5e-4f6a-8c9d-1e2f3a4b5c6d" },
+            listingId: { type: "string", example: "b4g9d3e2-5c6f-5g7b-9d0e-2f3g4b5c6d7e" },
+            createdAt: { type: "string", format: "date-time", example: "2024-01-15T10:30:00Z" },
           },
         },
-
         Review: {
           type: "object",
           properties: {
-            id: { type: "integer", example: 55 },
-            rating: { type: "integer", minimum: 1, maximum: 5, example: 5 },
-            comment: { type: "string", example: "Amazing stay, host was very welcoming!" },
-            listingId: { type: "integer", example: 10 },
-            reviewer: {
-              type: "object",
-              properties: {
-                name: { type: "string", example: "Alice Mugisha" },
-                avatar: { type: "string", nullable: true, example: "https://cdn.example.com/avatars/alice.jpg" },
-              },
-            },
-            createdAt: { type: "string", format: "date-time", example: "2024-06-10T12:00:00.000Z" },
+            id: { type: "string", example: "d6i1f5g4-7e8h-7i9d-1f2g-4h5i6d7e8f9g" },
+            rating: { type: "integer", minimum: 1, maximum: 5, example: 4 },
+            comment: { type: "string", example: "Amazing place, very clean!" },
+            userId: { type: "string", example: "a3f8c2d1-4b5e-4f6a-8c9d-1e2f3a4b5c6d" },
+            listingId: { type: "string", example: "b4g9d3e2-5c6f-5g7b-9d0e-2f3g4b5c6d7e" },
+            createdAt: { type: "string", format: "date-time", example: "2024-02-10T08:00:00Z" },
           },
         },
-
-        /* ========================= INPUT SCHEMAS ========================= */
-
         RegisterInput: {
           type: "object",
-          required: ["name", "email", "username", "phone", "password", "role"],
+          required: ["name", "email", "username", "phone", "password"],
           properties: {
-            name: { type: "string", example: "Alice Mugisha" },
+            name: { type: "string", example: "Alice Johnson" },
             email: { type: "string", example: "alice@example.com" },
-            username: { type: "string", example: "alice_m" },
-            phone: { type: "string", example: "+250788000001" },
-            password: { type: "string", example: "SecurePass123!" },
-            role: { type: "string", enum: ["HOST", "GUEST"], example: "GUEST" },
+            username: { type: "string", example: "alice_host" },
+            phone: { type: "string", example: "+1234567890" },
+            password: { type: "string", minLength: 8, example: "securePass123" },
+            role: { type: "string", enum: ["HOST", "GUEST"], example: "HOST" },
           },
         },
-
         LoginInput: {
           type: "object",
           required: ["email", "password"],
           properties: {
             email: { type: "string", example: "alice@example.com" },
-            password: { type: "string", example: "SecurePass123!" },
+            password: { type: "string", example: "securePass123" },
           },
         },
-
-        CreateListingInput: {
-          type: "object",
-          required: ["title", "description", "location", "pricePerNight", "guests", "type"],
-          properties: {
-            title: { type: "string", example: "Cozy Apartment in Kigali Heights" },
-            description: { type: "string", example: "A bright and modern apartment with a stunning city view." },
-            location: { type: "string", example: "Kigali, Rwanda" },
-            pricePerNight: { type: "number", example: 85.00 },
-            guests: { type: "integer", example: 4 },
-            type: { type: "string", enum: ["APARTMENT", "HOUSE", "VILLA", "CABIN"], example: "APARTMENT" },
-            amenities: {
-              type: "array",
-              nullable: true,
-              items: { type: "string" },
-              example: ["WiFi", "Air Conditioning", "Pool"],
-            },
-          },
-        },
-
-        CreateBookingInput: {
-          type: "object",
-          required: ["listingId", "checkIn", "checkOut"],
-          properties: {
-            listingId: { type: "integer", example: 10 },
-            checkIn: { type: "string", format: "date-time", example: "2025-06-01T14:00:00.000Z" },
-            checkOut: { type: "string", format: "date-time", example: "2025-06-07T11:00:00.000Z" },
-          },
-        },
-
-        CreateReviewInput: {
-          type: "object",
-          required: ["rating", "comment"],
-          properties: {
-            rating: { type: "integer", minimum: 1, maximum: 5, example: 5 },
-            comment: { type: "string", example: "Amazing stay, host was very welcoming!" },
-          },
-        },
-
-        /* ========================= RESPONSE SCHEMAS ========================= */
-
-        ErrorResponse: {
-          type: "object",
-          properties: {
-            error: { type: "string", example: "Resource not found" },
-          },
-        },
-
         AuthResponse: {
           type: "object",
           properties: {
@@ -178,58 +107,64 @@ const options: swaggerJsdoc.Options = {
             user: { $ref: "#/components/schemas/User" },
           },
         },
-
-        PaginatedListings: {
+        CreateListingInput: {
           type: "object",
+          required: ["title", "description", "location", "pricePerNight", "guests", "type", "amenities"],
           properties: {
-            data: {
-              type: "array",
-              items: { $ref: "#/components/schemas/Listing" },
-            },
-            meta: {
-              type: "object",
-              properties: {
-                total: { type: "integer", example: 84 },
-                page: { type: "integer", example: 1 },
-                limit: { type: "integer", example: 10 },
-                totalPages: { type: "integer", example: 9 },
-              },
-            },
+            title: { type: "string", example: "Cozy Studio in Kigali" },
+            description: { type: "string", example: "A beautiful studio with city views" },
+            location: { type: "string", example: "Kigali, Rwanda" },
+            pricePerNight: { type: "number", example: 85 },
+            guests: { type: "integer", example: 2 },
+            type: { type: "string", enum: ["APARTMENT", "HOUSE", "VILLA", "CABIN"], example: "APARTMENT" },
+            amenities: { type: "array", items: { type: "string" }, example: ["WiFi", "Kitchen"] },
           },
         },
-
-        ListingStats: {
+        CreateBookingInput: {
           type: "object",
+          required: ["listingId", "checkIn", "checkOut"],
           properties: {
-            totalListings: { type: "integer", example: 84 },
-            averagePrice: { type: "number", example: 92.50 },
-            byLocation: {
-              type: "object",
-              additionalProperties: { type: "integer" },
-              example: { "Kigali, Rwanda": 34, "Nairobi, Kenya": 20 },
-            },
-            byType: {
-              type: "object",
-              additionalProperties: { type: "integer" },
-              example: { APARTMENT: 40, VILLA: 18, HOUSE: 16, CABIN: 10 },
-            },
+            listingId: { type: "string", example: "b4g9d3e2-5c6f-5g7b-9d0e-2f3g4b5c6d7e" },
+            checkIn: { type: "string", format: "date-time", example: "2024-06-01T00:00:00Z" },
+            checkOut: { type: "string", format: "date-time", example: "2024-06-07T00:00:00Z" },
           },
         },
-
+        CreateReviewInput: {
+          type: "object",
+          required: ["rating", "comment"],
+          properties: {
+            rating: { type: "integer", minimum: 1, maximum: 5, example: 4 },
+            comment: { type: "string", example: "Amazing place, very clean!" },
+          },
+        },
+        ErrorResponse: {
+          type: "object",
+          properties: {
+            error: { type: "string", example: "Resource not found" },
+          },
+        },
+        PaginationMeta: {
+          type: "object",
+          properties: {
+            total: { type: "integer", example: 42 },
+            page: { type: "integer", example: 1 },
+            limit: { type: "integer", example: 10 },
+            totalPages: { type: "integer", example: 5 },
+          },
+        },
       },
     },
-    security: [{ bearerAuth: [] }],
   },
   apis: ["./src/routes/v1/*.ts"],
 };
 
-const spec = swaggerJsdoc(options);
+const swaggerSpec = swaggerJsdoc(options);
 
-export function setupSwagger(app: Express): void {
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(spec));
-  app.get("/api-docs.json", (_req, res) => {
+export function setupSwagger(app: Express) {
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  app.get("/api-docs.json", (req: Request, res: Response) => {
     res.setHeader("Content-Type", "application/json");
-    res.send(spec);
+    res.send(swaggerSpec);
   });
-  console.log("📚 Swagger docs at http://localhost:3000/api-docs");
+  console.log("📚 Swagger docs available at /api-docs");
 }

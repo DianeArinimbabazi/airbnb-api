@@ -1,75 +1,19 @@
 import { Router } from "express";
-import {
-  getListingReviews,
-  createReview,
-  deleteReview,
-} from "../../controllers/reviews.controller";
+import { deleteReview } from "../../controllers/reviews.controller";
 import { authenticate } from "../../middlewares/auth.middleware";
-import { strictLimiter } from "../../middlewares/rateLimiter";
 
-const router = Router({ mergeParams: true });
+const router = Router();
 
 /**
  * @swagger
- * /listings/{id}/reviews:
- *   get:
- *     summary: Get all reviews for a listing
- *     tags: [Reviews]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Paginated reviews
- *       404:
- *         description: Listing not found
+ * tags:
+ *   name: Reviews
+ *   description: Listing reviews
  */
-router.get("/listings/:id/reviews", getListingReviews);
 
 /**
  * @swagger
- * /listings/{id}/reviews:
- *   post:
- *     summary: Create a review for a listing
- *     tags: [Reviews]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [userId, rating, comment]
- *             properties:
- *               userId:
- *                 type: integer
- *               rating:
- *                 type: integer
- *                 minimum: 1
- *                 maximum: 5
- *               comment:
- *                 type: string
- *     responses:
- *       201:
- *         description: Review created
- *       400:
- *         description: Validation error
- */
-router.post("/listings/:id/reviews", authenticate, strictLimiter, createReview);
-
-/**
- * @swagger
- * /reviews/{id}:
+ * /api/v1/reviews/{id}:
  *   delete:
  *     summary: Delete a review
  *     tags: [Reviews]
@@ -80,13 +24,34 @@ router.post("/listings/:id/reviews", authenticate, strictLimiter, createReview);
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     responses:
  *       200:
  *         description: Review deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Review deleted successfully"
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       404:
  *         description: Review not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.delete("/reviews/:id", authenticate, deleteReview);
+router.delete("/:id", authenticate, deleteReview);
 
 export default router;
+
+
+
