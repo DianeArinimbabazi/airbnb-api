@@ -1,0 +1,5 @@
+[33m6ddc92b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m added changes
+[33mc6ac383[m fix: hardcode swagger server URL
+[33mead2f01[m fix: hardcode server URL to fix doubled api/v1 path
+[33m3aa1401[m fix: add /api/v1 prefix to swagger server URL
+[33m445e8c0[m final version - lesson 8 complete
