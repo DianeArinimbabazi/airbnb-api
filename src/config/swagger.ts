@@ -13,7 +13,7 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: `${process.env["API_URL"] || "http://localhost:3000"}/api/v1`,
+        url: "https://airbnb-api-3mnx.onrender.com",
         description: "API Server",
       },
     ],
