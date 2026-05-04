@@ -8,30 +8,22 @@ import { setupSwagger } from "./config/swagger";
 import { generalLimiter } from "./middlewares/rateLimiter";
 import { deprecateV1 } from "./middlewares/deprecation.middleware";
 import v1Router from "./routes/v1/index";
-import { userUploadRouter, listingUploadRouter } from "./routes/upload.routes";
 
 const app = express();
-app.set("trust proxy", 1); // trust Render's proxy
+app.set("trust proxy", 1);
 
 app.use(process.env["NODE_ENV"] === "production" ? morgan("combined") : morgan("dev"));
 app.use(compression());
 app.use(express.json());
 app.use(generalLimiter);
 
-// Health check — before swagger and routes
 app.get("/health", (req: Request, res: Response) => {
-  res.json({
-    status: "ok",
-    uptime: process.uptime(),
-    timestamp: new Date(),
-  });
+  res.json({ status: "ok", uptime: process.uptime(), timestamp: new Date() });
 });
 
 setupSwagger(app);
 
 app.use("/api/v1", deprecateV1, v1Router);
-app.use("/api/v1/users", userUploadRouter);
-app.use("/api/v1/listings", listingUploadRouter);
 
 app.get("/", (req: Request, res: Response) => {
   res.json({ message: "Airbnb API running 🚀" });
