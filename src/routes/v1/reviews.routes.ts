@@ -13,7 +13,7 @@ const router = Router();
 
 /**
  * @swagger
- * /api/v1/reviews/{id}:
+ * /reviews/{id}:
  *   delete:
  *     summary: Delete a review
  *     tags: [Reviews]

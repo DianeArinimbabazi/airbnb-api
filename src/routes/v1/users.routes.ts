@@ -14,7 +14,7 @@ const router = Router();
 
 /**
  * @swagger
- * /api/v1/users/stats:
+ * /users/stats:
  *   get:
  *     summary: Get user statistics
  *     tags: [Users]
@@ -39,7 +39,7 @@ router.get("/stats", getUserStats);
 
 /**
  * @swagger
- * /api/v1/users/{id}/listings:
+ * /users/{id}/listings:
  *   get:
  *     summary: Get all listings for a host
  *     tags: [Users]
@@ -70,7 +70,7 @@ router.get("/:id/listings", async (req, res) => {
 
 /**
  * @swagger
- * /api/v1/users/{id}/bookings:
+ * /users/{id}/bookings:
  *   get:
  *     summary: Get all bookings for a user
  *     tags: [Bookings]
@@ -140,7 +140,7 @@ router.get("/:id/bookings", async (req, res) => {
 
 /**
  * @swagger
- * /api/v1/users:
+ * /users:
  *   get:
  *     summary: Get all users (paginated)
  *     tags: [Users]
@@ -182,7 +182,7 @@ router.get("/", authenticate, getAllUsers);
 
 /**
  * @swagger
- * /api/v1/users/{id}:
+ * /users/{id}:
  *   get:
  *     summary: Get a user by ID
  *     tags: [Users]
@@ -218,7 +218,7 @@ router.get("/:id", authenticate, getUserById);
 
 /**
  * @swagger
- * /api/v1/users/{id}:
+ * /users/{id}:
  *   put:
  *     summary: Update a user
  *     tags: [Users]
@@ -266,7 +266,7 @@ router.put("/:id", authenticate, updateUser);
 
 /**
  * @swagger
- * /api/v1/users/{id}:
+ * /users/{id}:
  *   delete:
  *     summary: Delete a user
  *     tags: [Users]
