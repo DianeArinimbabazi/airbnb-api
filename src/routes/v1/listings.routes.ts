@@ -15,7 +15,7 @@ const router = Router();
 
 /**
  * @swagger
- * /api/v1/listings/stats:
+ * /listings/stats:
  *   get:
  *     summary: Get listing statistics
  *     tags: [Listings]
@@ -47,7 +47,7 @@ router.get("/stats", getListingStats);
 
 /**
  * @swagger
- * /api/v1/listings/search:
+ * /listings/search:
  *   get:
  *     summary: Search and filter listings
  *     tags: [Listings]
@@ -103,7 +103,7 @@ router.get("/search", searchListings);
 
 /**
  * @swagger
- * /api/v1/listings:
+ * /listings:
  *   get:
  *     summary: Get all listings (paginated)
  *     tags: [Listings]
@@ -160,7 +160,7 @@ router.get("/", getAllListings);
 
 /**
  * @swagger
- * /api/v1/listings/{id}/reviews:
+ * /listings/{id}/reviews:
  *   get:
  *     summary: Get all reviews for a listing
  *     tags: [Reviews]
@@ -205,7 +205,7 @@ router.get("/:id/reviews", getListingReviews);
 
 /**
  * @swagger
- * /api/v1/listings/{id}/reviews:
+ * /listings/{id}/reviews:
  *   post:
  *     summary: Add a review to a listing
  *     tags: [Reviews]
@@ -253,7 +253,7 @@ router.post("/:id/reviews", authenticate, strictLimiter, createReview);
 
 /**
  * @swagger
- * /api/v1/listings/{id}:
+ * /listings/{id}:
  *   get:
  *     summary: Get a listing by ID
  *     tags: [Listings]
@@ -281,7 +281,7 @@ router.get("/:id", getListingById);
 
 /**
  * @swagger
- * /api/v1/listings:
+ * /listings:
  *   post:
  *     summary: Create a listing (hosts only)
  *     tags: [Listings]
@@ -323,7 +323,7 @@ router.post("/", authenticate, requireHost, createListing);
 
 /**
  * @swagger
- * /api/v1/listings/{id}:
+ * /listings/{id}:
  *   put:
  *     summary: Update a listing (owner only)
  *     tags: [Listings]
@@ -388,7 +388,7 @@ router.put("/:id", authenticate, updateListing);
 
 /**
  * @swagger
- * /api/v1/listings/{id}:
+ * /listings/{id}:
  *   delete:
  *     summary: Delete a listing (owner only)
  *     tags: [Listings]
