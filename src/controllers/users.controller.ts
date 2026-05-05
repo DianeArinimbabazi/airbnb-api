@@ -3,10 +3,23 @@ import { Response } from "express";
 import prisma from "../config/prisma";
 import type { AuthRequest } from "../middlewares/auth.middleware";
 
+const safeUserSelect = {
+  id: true,
+  name: true,
+  email: true,
+  username: true,
+  phone: true,
+  role: true,
+  avatar: true,
+  bio: true,
+  createdAt: true,
+  updatedAt: true,
+};
+
 export const getAllUsers = async (req: AuthRequest, res: Response) => {
   try {
     const users = await prisma.user.findMany({
-      include: { _count: { select: { listings: true } } },
+      select: { ...safeUserSelect, _count: { select: { listings: true } } },
     });
     res.json(users);
   } catch (error) {
@@ -19,7 +32,7 @@ export const getUserById = async (req: AuthRequest, res: Response) => {
     const id = req.params.id as string;
     const user = await prisma.user.findUnique({
       where: { id },
-      include: { listings: true, bookings: true },
+      select: { ...safeUserSelect, listings: true, bookings: true },
     });
     if (!user) return res.status(404).json({ error: "User not found" });
     res.json(user);
@@ -38,6 +51,7 @@ export const createUser = async (req: AuthRequest, res: Response) => {
     if (existing) return res.status(409).json({ error: "Email already exists" });
     const user = await prisma.user.create({
       data: { name, email, username, phone, role, password, avatar: req.body.avatar, bio: req.body.bio },
+      select: safeUserSelect,
     });
     res.status(201).json(user);
   } catch (error) {
@@ -50,7 +64,11 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
     const id = req.params.id as string;
     const existing = await prisma.user.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ error: "User not found" });
-    const user = await prisma.user.update({ where: { id }, data: req.body });
+    const user = await prisma.user.update({
+      where: { id },
+      data: req.body,
+      select: safeUserSelect,
+    });
     res.json(user);
   } catch (error) {
     res.status(500).json({ error: "Something went wrong" });
