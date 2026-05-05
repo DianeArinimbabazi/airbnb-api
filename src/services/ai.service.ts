@@ -1,126 +1,94 @@
-import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { HumanMessage, SystemMessage, AIMessage } from "@langchain/core/messages";
 import { model, filterModel } from "../config/ai.js";
 
-/**
- * AI Service Layer (clean architecture)
- * All AI logic centralized here instead of controllers
- */
-
-export class AIService {
-  // -----------------------------
-  // PART 1: FILTER EXTRACTION
-  // -----------------------------
-  static async extractSearchFilters(query: string) {
-    const prompt = `
-Extract search filters from this query: "${query}"
-
-Return ONLY valid JSON:
+export const AIService = {
+  async extractSearchFilters(query: string) {
+    const prompt = `Extract search filters from this query: "${query}"
+Return ONLY a JSON object with these fields (use null if not mentioned):
 {
-  "location": string | null,
+  "location": string or null,
   "type": "APARTMENT" | "HOUSE" | "VILLA" | "CABIN" | null,
-  "maxPrice": number | null,
-  "guests": number | null
+  "maxPrice": number or null,
+  "guests": number or null
 }
-`;
+Return only the JSON, no explanation.`;
 
-    const res = await filterModel.invoke([new HumanMessage(prompt)]);
-    return this.safeJSON(res.content as string);
-  }
+    const response = await filterModel.invoke([new HumanMessage(prompt)]);
+    const text = response.content as string;
+    const clean = text.replace(/```json|```/g, "").trim();
+    return JSON.parse(clean);
+  },
 
-  // -----------------------------
-  // PART 2: DESCRIPTION GENERATION
-  // -----------------------------
-  static async generateDescription(listing: any, tone: string) {
-    const tones: Record<string, string> = {
-      professional: "formal and business-like",
-      casual: "friendly and conversational",
-      luxury: "elegant, premium and aspirational",
+  async generateDescription(listing: any, tone: string) {
+    const toneMap: Record<string, string> = {
+      professional: "Write in a formal, clear, business-like tone.",
+      casual: "Write in a friendly, relaxed, conversational tone.",
+      luxury: "Write in an elegant, premium, aspirational tone.",
     };
 
-    const prompt = `
-Write a listing description in a ${tones[tone] || tones.professional} tone.
-
+    const prompt = `Generate a compelling listing description:
 Title: ${listing.title}
 Location: ${listing.location}
 Type: ${listing.type}
-Price: $${listing.pricePerNight}
+Price: $${listing.pricePerNight}/night
 Guests: ${listing.guests}
 Amenities: ${listing.amenities}
 
-Write 2–3 sentences only.
-`;
+${toneMap[tone] || toneMap["professional"]}
+Write 2-3 sentences only.`;
 
-    const res = await model.invoke([new HumanMessage(prompt)]);
-    return res.content as string;
-  }
+    const response = await model.invoke([new HumanMessage(prompt)]);
+    return response.content as string;
+  },
 
-  // -----------------------------
-  // PART 3: CHATBOT
-  // -----------------------------
-  static async chat(systemPrompt: string, messages: any[]) {
-    const res = await model.invoke([
+  async chat(systemPrompt: string, messages: { role: string; content: string }[]) {
+    const langchainMessages = [
       new SystemMessage(systemPrompt),
-      ...messages,
-    ]);
+      ...messages.map((m) =>
+        m.role === "user" ? new HumanMessage(m.content) : new AIMessage(m.content)
+      ),
+    ];
 
-    return res.content as string;
-  }
+    const response = await model.invoke(langchainMessages);
+    return response.content as string;
+  },
 
-  // -----------------------------
-  // PART 4: RECOMMENDATION ENGINE
-  // -----------------------------
-  static async recommendFromHistory(history: string) {
-    const prompt = `
-Analyze booking history and return ONLY JSON:
-
+  async recommendFromHistory(history: string) {
+    const prompt = `Based on this booking history:
 ${history}
 
+Return ONLY a JSON object:
 {
-  "preferences": string,
+  "preferences": "string describing what the user likes",
   "searchFilters": {
-    "location": string | null,
+    "location": string or null,
     "type": "APARTMENT" | "HOUSE" | "VILLA" | "CABIN" | null,
-    "maxPrice": number | null,
-    "guests": number | null
+    "maxPrice": number or null,
+    "guests": number or null
   },
-  "reason": string
-}
-`;
+  "reason": "string explaining the recommendation"
+}`;
 
-    const res = await filterModel.invoke([new HumanMessage(prompt)]);
-    return this.safeJSON(res.content as string);
-  }
+    const response = await filterModel.invoke([new HumanMessage(prompt)]);
+    const text = response.content as string;
+    const clean = text.replace(/```json|```/g, "").trim();
+    return JSON.parse(clean);
+  },
 
-  // -----------------------------
-  // PART 5: REVIEW SUMMARIZER
-  // -----------------------------
-  static async summarizeReviews(text: string) {
-    const prompt = `
-Summarize these reviews:
-
+  async summarizeReviews(text: string) {
+    const prompt = `Summarize these guest reviews:
 ${text}
 
-Return ONLY JSON:
+Return ONLY a JSON object:
 {
-  "summary": string,
-  "positives": string[],
-  "negatives": string[]
-}
-`;
+  "summary": "2-3 sentence overall summary",
+  "positives": ["thing1", "thing2", "thing3"],
+  "negatives": ["thing1"] or []
+}`;
 
-    const res = await model.invoke([new HumanMessage(prompt)]);
-    return this.safeJSON(res.content as string);
-  }
-
-  // -----------------------------
-  // SAFE JSON PARSER (VERY IMPORTANT)
-  // -----------------------------
-  static safeJSON(text: string) {
-    try {
-      const clean = text.replace(/```json|```/g, "").trim();
-      return JSON.parse(clean);
-    } catch {
-      throw new Error("Invalid AI JSON response");
-    }
-  }
-}
+    const response = await model.invoke([new HumanMessage(prompt)]);
+    const raw = response.content as string;
+    const clean = raw.replace(/```json|```/g, "").trim();
+    return JSON.parse(clean);
+  },
+};

@@ -1,14 +1,14 @@
 import { ChatGroq } from "@langchain/groq";
 
 export const model = new ChatGroq({
-  model: "llama3-8b-8192",
+  model: "llama-3.3-70b-versatile",
   temperature: 0.7,
   apiKey: process.env.GROQ_API_KEY,
 });
 
 // 🔥 IMPORTANT: deterministic model for JSON extraction
 export const filterModel = new ChatGroq({
-  model: "llama3-8b-8192",
+  model: "llama-3.3-70b-versatile",
   temperature: 0,
   apiKey: process.env.GROQ_API_KEY,
 });

@@ -46,8 +46,11 @@ export async function aiSearch(req: Request, res: Response) {
       data,
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     });
-  } catch (err) {
-    res.status(500).json({ error: "AI search failed" });
+  } catch (err: any) {
+    console.error(err);
+    if (err?.status === 429) return res.status(429).json({ error: "AI service is busy, please try again in a moment" });
+    if (err?.status === 401) return res.status(500).json({ error: "AI service configuration error" });
+    res.status(500).json({ error: "Something went wrong" });
   }
 }
 
@@ -73,8 +76,11 @@ export async function generateDescription(req: AuthRequest, res: Response) {
     });
 
     res.json({ description, listing: updated });
-  } catch {
-    res.status(500).json({ error: "AI generation failed" });
+  } catch (err: any) {
+    console.error(err);
+    if (err?.status === 429) return res.status(429).json({ error: "AI service is busy, please try again in a moment" });
+    if (err?.status === 401) return res.status(500).json({ error: "AI service configuration error" });
+    res.status(500).json({ error: "Something went wrong" });
   }
 }
 
@@ -91,8 +97,7 @@ export async function chat(req: Request, res: Response) {
       return res.status(400).json({ error: "sessionId and message required" });
     }
 
-    let systemPrompt =
-      "You are a helpful Airbnb guest support assistant.";
+    let systemPrompt = "You are a helpful Airbnb guest support assistant.";
 
     if (listingId) {
       const listing = await prisma.listing.findUnique({
@@ -137,8 +142,11 @@ Description: ${listing.description}
       sessionId,
       messageCount: trimmed.length,
     });
-  } catch {
-    res.status(500).json({ error: "Chat failed" });
+  } catch (err: any) {
+    console.error(err);
+    if (err?.status === 429) return res.status(429).json({ error: "AI service is busy, please try again in a moment" });
+    if (err?.status === 401) return res.status(500).json({ error: "AI service configuration error" });
+    res.status(500).json({ error: "Something went wrong" });
   }
 }
 
@@ -181,8 +189,11 @@ export async function recommend(req: AuthRequest, res: Response) {
     });
 
     res.json({ ...result, recommendations });
-  } catch {
-    res.status(500).json({ error: "Recommendation failed" });
+  } catch (err: any) {
+    console.error(err);
+    if (err?.status === 429) return res.status(429).json({ error: "AI service is busy, please try again in a moment" });
+    if (err?.status === 401) return res.status(500).json({ error: "AI service configuration error" });
+    res.status(500).json({ error: "Something went wrong" });
   }
 }
 
@@ -226,7 +237,10 @@ export async function reviewSummary(req: Request, res: Response) {
     setCache(cacheKey, final, 600);
 
     res.json(final);
-  } catch {
-    res.status(500).json({ error: "Review summary failed" });
+  } catch (err: any) {
+    console.error(err);
+    if (err?.status === 429) return res.status(429).json({ error: "AI service is busy, please try again in a moment" });
+    if (err?.status === 401) return res.status(500).json({ error: "AI service configuration error" });
+    res.status(500).json({ error: "Something went wrong" });
   }
 }
