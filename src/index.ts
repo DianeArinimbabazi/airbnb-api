@@ -9,7 +9,9 @@ import { generalLimiter } from "./middlewares/rateLimiter";
 import { deprecateV1 } from "./middlewares/deprecation.middleware";
 import v1Router from "./routes/v1/index";
 
+import cors from "cors";
 const app = express();
+app.use(cors({ origin: ["http://localhost:5173", "http://localhost:4173"], credentials: true }));
 app.set("trust proxy", 1);
 
 app.use(process.env["NODE_ENV"] === "production" ? morgan("combined") : morgan("dev"));
