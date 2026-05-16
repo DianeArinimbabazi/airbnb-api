@@ -7,14 +7,15 @@ export const uploadAvatar = async (req: AuthRequest, res: Response) => {
   try {
     const id = req.params.id as string;
     if (req.userId !== id) return res.status(403).json({ error: "Forbidden" });
-    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+    const reqFile = req.file || (req.files as any)?.[0];
+    if (!reqFile) return res.status(400).json({ error: "No file uploaded" });
 
     const user = await prisma.user.findUnique({ where: { id } });
     if (!user) return res.status(404).json({ error: "User not found" });
 
     if (user.avatarPublicId) await deleteFromCloudinary(user.avatarPublicId);
 
-    const { url, publicId } = await uploadToCloudinary(req.file.buffer, "airbnb/avatars");
+    const { url, publicId } = await uploadToCloudinary(reqFile.buffer, "airbnb/avatars");
 
     const updated = await prisma.user.update({
       where: { id },

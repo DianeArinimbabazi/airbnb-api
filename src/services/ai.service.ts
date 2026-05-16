@@ -43,7 +43,7 @@ Write 2-3 sentences only.`;
 
   async chat(systemPrompt: string, messages: { role: string; content: string }[]) {
     const langchainMessages = [
-      new SystemMessage(systemPrompt),
+      new SystemMessage(systemPrompt + "\n\nKeep all replies under 3 sentences. Be direct and concise."),
       ...messages.map((m) =>
         m.role === "user" ? new HumanMessage(m.content) : new AIMessage(m.content)
       ),
@@ -76,14 +76,14 @@ Return ONLY a JSON object:
   },
 
   async summarizeReviews(text: string) {
-    const prompt = `Summarize these guest reviews:
+    const prompt = `Summarize these guest reviews in the shortest possible way:
 ${text}
 
 Return ONLY a JSON object:
 {
-  "summary": "2-3 sentence overall summary",
-  "positives": ["thing1", "thing2", "thing3"],
-  "negatives": ["thing1"] or []
+  "summary": "1 sentence only, max 20 words",
+  "positives": ["short phrase under 6 words", "short phrase under 6 words"],
+  "negatives": ["short phrase under 6 words"] or []
 }`;
 
     const response = await model.invoke([new HumanMessage(prompt)]);

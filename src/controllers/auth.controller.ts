@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
@@ -137,7 +137,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
       data: { resetToken: hashedToken, resetTokenExpiry: expiresAt },
     });
 
-    const resetLink = `${process.env["API_URL"] || "http://localhost:3000"}/auth/reset-password/${rawToken}`;
+    const resetLink = `${process.env["API_URL"] || "http://localhost:5173"}/reset-password/${rawToken}`;
 
     try {
       await sendEmail(user.email, "Reset your Airbnb password", passwordResetEmail(user.name, resetLink));
@@ -178,3 +178,4 @@ export const resetPassword = async (req: Request, res: Response) => {
     return res.status(500).json({ error: error.message || "Something went wrong" });
   }
 };
+

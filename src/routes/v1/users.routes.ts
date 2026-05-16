@@ -1,3 +1,5 @@
+import multer from "multer";
+import { uploadAvatar, deleteAvatar } from "../../controllers/upload.controller";
 import { Router } from "express";
 import { getAllUsers, getUserById, updateUser, deleteUser, getUserStats } from "../../controllers/users.controller";
 import { authenticate } from "../../middlewares/auth.middleware";
@@ -127,7 +129,7 @@ router.get("/:id/bookings", async (req, res) => {
         where: { guestId: req.params.id },
         skip, take: limit,
         orderBy: { createdAt: "desc" },
-        include: { listing: { select: { title: true, location: true } } },
+        include: { listing: { select: { title: true, location: true, pricePerNight: true, photos: true } } },
       }),
       prisma.booking.count({ where: { guestId: req.params.id } }),
     ]);
@@ -304,7 +306,7 @@ router.put("/:id", authenticate, updateUser);
  */
 router.delete("/:id", authenticate, deleteUser);
 
+router.post("/:id/avatar", authenticate, multer({ storage: multer.memoryStorage() }).any(), uploadAvatar);
+router.delete("/:id/avatar", authenticate, deleteAvatar);
+
 export default router;
-
-
-

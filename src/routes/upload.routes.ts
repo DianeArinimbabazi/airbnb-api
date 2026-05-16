@@ -10,8 +10,11 @@ import {
 
 const router = Router();
 
-router.post("/:id/avatar", authenticate, upload.single("image"), uploadAvatar);
-router.delete("/:id/avatar", authenticate, deleteAvatar);
+router.post("/:id/avatar", authenticate, (req: any, res: any, next: any) => {
+  console.log("Content-Type:", req.headers["content-type"]);
+  next();
+}, upload.single("avatar"), uploadAvatar);
+
 
 export { router as userUploadRouter };
 

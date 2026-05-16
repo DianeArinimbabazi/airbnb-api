@@ -31,7 +31,7 @@ router.get("/:id/bookings", async (req, res) => {
         where: { guestId: req.params.id },
         skip, take: limit,
         orderBy: { createdAt: "desc" },
-        include: { listing: { select: { title: true, location: true } } },
+        include: { listing: { select: { title: true, location: true, pricePerNight: true, photos: true } } },
       }),
       prisma.booking.count({ where: { guestId: req.params.id } }),
     ]);

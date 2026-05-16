@@ -12,7 +12,7 @@ import { connectDB } from "./config/prisma";
 
 import cors from "cors";
 const app = express();
-app.use(cors({ origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:4173", "https://airbnb-clone-app-five.vercel.app"], credentials: true }));
+app.use(cors({ origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:4173", "https://airbnb-clone-app-five.vercel.app", /\.vercel\.app$/], credentials: true }));
 app.set("trust proxy", 1);
 
 app.use(process.env["NODE_ENV"] === "production" ? morgan("combined") : morgan("dev"));

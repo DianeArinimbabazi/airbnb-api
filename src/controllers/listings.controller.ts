@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import prisma from "../config/prisma";
 import { getCache, setCache, clearCache, clearCacheByPrefix } from "../config/cache";
 import { AuthRequest } from "../middlewares/auth.middleware";
@@ -17,7 +17,7 @@ export const getAllListings = async (req: Request, res: Response): Promise<void>
       prisma.listing.findMany({
         skip, take: limit,
         orderBy: { createdAt: "desc" },
-        include: { host: { select: { name: true, avatar: true } } },
+        include: { host: { select: { name: true, avatar: true } }, photos: true },
       }),
       prisma.listing.count(),
     ]);
@@ -56,7 +56,7 @@ export const searchListings = async (req: Request, res: Response): Promise<void>
       prisma.listing.findMany({
         where, skip, take: limit,
         orderBy: { createdAt: "desc" },
-        include: { host: { select: { name: true, avatar: true } } },
+        include: { host: { select: { name: true, avatar: true } }, photos: true },
       }),
       prisma.listing.count({ where }),
     ]);
@@ -104,6 +104,7 @@ export const getListingById = async (req: Request, res: Response): Promise<void>
       where: { id },
       include: {
         host: { select: { name: true, avatar: true } },
+        photos: true,
         reviews: { include: { user: { select: { name: true, avatar: true } } } },
       },
     });

@@ -1,4 +1,4 @@
-import { Response, NextFunction } from "express";
+﻿import { Response, NextFunction } from "express";
 import prisma from "../config/prisma";
 import type { AuthRequest } from "../middlewares/auth.middleware";
 import { sendEmail } from "../config/email";
@@ -22,7 +22,7 @@ export const getAllBookings = async (req: AuthRequest, res: Response): Promise<v
         orderBy: { createdAt: "desc" },
         include: {
           guest: { select: { name: true, email: true } },
-          listing: { select: { title: true, location: true } },
+          listing: { select: { title: true, location: true, pricePerNight: true, photos: true } },
         },
       }),
       prisma.booking.count(),
