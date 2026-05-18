@@ -1,5 +1,5 @@
 import { HumanMessage, SystemMessage, AIMessage } from "@langchain/core/messages";
-import { model, filterModel } from "../config/ai.js";
+import { model, filterModel } from "../config/ai";
 
 export const AIService = {
   async extractSearchFilters(query: string) {

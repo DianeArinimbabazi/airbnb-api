@@ -5,8 +5,8 @@ import {
   chat,
   recommend,
   reviewSummary,
-} from "../../controllers/ai.controller.js";
-import { authenticate } from "../../middlewares/auth.middleware.js";
+} from "../../controllers/ai.controller";
+import { authenticate } from "../../middlewares/auth.middleware";
 
 const router = Router();
 

@@ -1,4 +1,4 @@
-generator client {
+﻿generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["driverAdapters"]
 }
@@ -26,6 +26,8 @@ model User {
   bookings         Booking[]
   listings         Listing[]
   reviews          Review[]
+  sentMessages     Message[]  @relation("SentMessages")
+  receivedMessages Message[]  @relation("ReceivedMessages")
 }
 
 model Listing {
@@ -106,6 +108,22 @@ enum ListingType {
   HOUSE
   VILLA
   CABIN
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  content    String
+  createdAt  DateTime @default(now())
+  read       Boolean  @default(false)
+  senderId   String
+  receiverId String
+  bookingId  String
+  sender     User     @relation("SentMessages",     fields: [senderId],   references: [id], onDelete: Cascade)
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([bookingId])
 }
 
 enum BookingStatus {

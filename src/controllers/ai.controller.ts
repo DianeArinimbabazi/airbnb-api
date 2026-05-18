@@ -1,8 +1,8 @@
 import type { Request, Response } from "express";
-import prisma from "../config/prisma.js";
-import type { AuthRequest } from "../middlewares/auth.middleware.js";
-import { AIService } from "../services/ai.service.js";
-import { getCache, setCache } from "../config/cache.js";
+import prisma from "../config/prisma";
+import type { AuthRequest } from "../middlewares/auth.middleware";
+import { AIService } from "../services/ai.service";
+import { getCache, setCache } from "../config/cache";
 
 /* =========================
    PART 1 — AI SEARCH
