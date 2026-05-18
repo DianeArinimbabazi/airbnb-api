@@ -1,4 +1,4 @@
-import { Response } from "express";
+﻿import { Response } from "express";
 import prisma from "../config/prisma";
 import { getCache, setCache, clearCacheByPrefix } from "../config/cache";
 import type { AuthRequest } from "../middlewares/auth.middleware";
@@ -89,3 +89,51 @@ export const deleteReview = async (req: AuthRequest, res: Response) => {
   }
 };
 
+
+export const getAllReviews = async (req: AuthRequest, res: Response) => {
+  try {
+    const limit = Number(req.query.limit) || 6;
+    const reviews = await prisma.review.findMany({
+      take: limit,
+      orderBy: { createdAt: "desc" },
+      include: {
+        user: { select: { name: true } },
+        listing: { select: { title: true } },
+      },
+    });
+    const mapped = reviews.map(r => ({
+      ...r,
+      guest: { name: r.user?.name ?? "Guest" },
+    }));
+    return res.json(mapped);
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+export const createReviewByBooking = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const { bookingId, listingId, rating, comment } = req.body;
+
+    if (!listingId || !rating || !comment) {
+      return res.status(400).json({ error: "listingId, rating and comment are required" });
+    }
+    if (rating < 1 || rating > 5) {
+      return res.status(400).json({ error: "Rating must be between 1 and 5" });
+    }
+
+    const listing = await prisma.listing.findUnique({ where: { id: listingId } });
+    if (!listing) return res.status(404).json({ error: "Listing not found" });
+
+    const review = await prisma.review.create({
+      data: { rating: Number(rating), comment, userId, listingId },
+    });
+
+    clearCacheByPrefix(`reviews:${listingId}`);
+    clearCacheByPrefix(`review-summary-${listingId}`);
+    return res.status(201).json(review);
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+};
